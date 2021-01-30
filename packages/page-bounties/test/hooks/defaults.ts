@@ -8,7 +8,7 @@ import { BountyApi } from '@polkadot/app-bounties/hooks';
 import { balanceOf } from '@polkadot/test-support/creation/balance';
 import { BlockNumber } from '@polkadot/types/interfaces';
 
-export const defaultBountyApi: BountyApi = {
+const defaultBountyApi: BountyApi = {
   acceptCurator: jest.fn(),
   approveBounty: jest.fn(),
   awardBounty: jest.fn().mockReturnValue('mockAwardExtrinsic'),
@@ -26,6 +26,9 @@ export const defaultBountyApi: BountyApi = {
   unassignCurator: jest.fn().mockReturnValue('mockUnassignExtrinsic')
 };
 
-export const defaultBalance = balanceOf(1);
+const defaultBalance = balanceOf(1);
 
-export const defaultCurator = '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM';
+export const mockBountyHooks = {
+  balance: defaultBalance,
+  bountyApi: defaultBountyApi
+};

@@ -23,39 +23,18 @@ import { createAugmentedApi } from '@polkadot/test-support/api';
 import { balanceOf } from '@polkadot/test-support/creation/balance';
 import { BountyFactory } from '@polkadot/test-support/creation/bounties/bountyFactory';
 import { aGenesisHash } from '@polkadot/test-support/creation/hashes';
-import { defaultTreasury } from '@polkadot/test-support/creation/treasury/defaults';
 import { proposalFactory } from '@polkadot/test-support/creation/treasury/proposalFactory';
+import { mockHooks } from '@polkadot/test-support/hooks/mockHooks';
 import { MemoryStore } from '@polkadot/test-support/keyring';
-import { alice, bob, defaultMembers, ferdie } from '@polkadot/test-support/keyring/addresses';
+import { alice, bob, ferdie } from '@polkadot/test-support/keyring/addresses';
 import { keyring } from '@polkadot/ui-keyring';
-import { extractTime } from '@polkadot/util';
 
-import { BountiesPage, mocks } from '../test/pages/bountiesPage';
+import { mockBountyHooks } from '../test/hooks/defaults';
+import { BountiesPage } from '../test/pages/bountiesPage';
 import { clickButtonWithName } from '../test/utils/clickButtonWithName';
 import { clickElementWithTestId } from '../test/utils/clickElementWithTestId';
 import { clickElementWithText } from '../test/utils/clickElementWithText';
 import Bounties from './Bounties';
-
-let aProposal: (extrinsic: SubmittableExtrinsic<'promise'>, ayes?: string[], nays?: string[]) => DeriveCollectiveProposal;
-
-const propose = jest.fn().mockReturnValue('mockProposeExtrinsic');
-let augmentedApi: ApiPromise;
-let queueExtrinsic: QueueTxExtrinsicAdd;
-let aBounty: ({ status, value }?: Partial<Bounty>) => Bounty;
-let aBountyIndex: (index?:number) => BountyIndex;
-let aBountyStatus: (status: string) => BountyStatus;
-let bountyStatusWith: ({ curator, status }: { curator?: string, status?: string, }) => BountyStatus;
-let bountyWith: ({ status, value }: { status?: string, value?: number }) => Bounty;
-
-export const mockHooks = {
-  blockTime: [50, '', extractTime(1)],
-  members: defaultMembers,
-  treasury: defaultTreasury
-};
-
-export function initMockReactHooks () {
-  return mockHooks;
-}
 
 jest.mock('@polkadot/react-hooks/useTreasury', () => ({
   useTreasury: () => mockHooks.treasury
@@ -68,6 +47,25 @@ jest.mock('@polkadot/react-hooks/useMembers', () => ({
 jest.mock('@polkadot/react-hooks/useBlockTime', () => ({
   useBlockTime: () => mockHooks.blockTime
 }));
+
+jest.mock('./hooks/useBalance', () => ({
+  useBalance: () => mockBountyHooks.balance
+}));
+
+jest.mock('./hooks/useBounties', () => ({
+  useBounties: () => mockBountyHooks.bountyApi
+}));
+
+let aProposal: (extrinsic: SubmittableExtrinsic<'promise'>, ayes?: string[], nays?: string[]) => DeriveCollectiveProposal;
+let augmentedApi: ApiPromise;
+let queueExtrinsic: QueueTxExtrinsicAdd;
+let aBounty: ({ status, value }?: Partial<Bounty>) => Bounty;
+let aBountyIndex: (index?:number) => BountyIndex;
+let aBountyStatus: (status: string) => BountyStatus;
+let bountyStatusWith: ({ curator, status }: { curator?: string, status?: string, }) => BountyStatus;
+let bountyWith: ({ status, value }: { status?: string, value?: number }) => Bounty;
+
+const propose = jest.fn().mockReturnValue('mockProposeExtrinsic');
 
 describe('Bounties', () => {
   beforeAll(async () => {
@@ -82,8 +80,8 @@ describe('Bounties', () => {
   });
 
   const renderBounties = (bountyApi: Partial<BountyApi> = {}, { balance = 1 } = {}) => {
-    mocks.mockBountyApi = { ...mocks.mockBountyApi, ...bountyApi };
-    mocks.mockBalance = balanceOf(balance);
+    mockBountyHooks.bountyApi = { ...mockBountyHooks.bountyApi, ...bountyApi };
+    mockBountyHooks.balance = balanceOf(balance);
     const mockApi: ApiProps = {
       api: {
         derive: {
@@ -502,7 +500,7 @@ describe('Bounties', () => {
       await clickButtonWithName('Accept', findByRole);
 
       expect(queueExtrinsic).toHaveBeenCalledWith(expect.objectContaining({ accountId: alice, extrinsic: 'mockExtendExtrinsic' }));
-      expect(mocks.mockBountyApi.extendBountyExpiry).toHaveBeenCalledWith(aBountyIndex(0), 'The bounty extend expiry remark');
+      expect(mockBountyHooks.bountyApi.extendBountyExpiry).toHaveBeenCalledWith(aBountyIndex(0), 'The bounty extend expiry remark');
     });
   });
 
@@ -526,7 +524,7 @@ describe('Bounties', () => {
       await clickButtonWithName('Approve', findByRole);
 
       expect(queueExtrinsic).toHaveBeenCalledWith(expect.objectContaining({ accountId: alice, extrinsic: 'mockUnassignExtrinsic' }));
-      expect(mocks.mockBountyApi.unassignCurator).toHaveBeenCalledWith(aBountyIndex(0));
+      expect(mockBountyHooks.bountyApi.unassignCurator).toHaveBeenCalledWith(aBountyIndex(0));
     });
 
     it('creates a motion when slashing a PendingPayout bounty', async () => {
@@ -574,7 +572,7 @@ describe('Bounties', () => {
       fireEvent.click(acceptButton);
 
       expect(queueExtrinsic).toHaveBeenCalledWith(expect.objectContaining({ accountId: alice, extrinsic: 'mockAwardExtrinsic' }));
-      expect(mocks.mockBountyApi.awardBounty).toHaveBeenCalledWith(aBountyIndex(0), bob);
+      expect(mockBountyHooks.bountyApi.awardBounty).toHaveBeenCalledWith(aBountyIndex(0), bob);
     });
   });
 });
